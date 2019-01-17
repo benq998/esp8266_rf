@@ -16,7 +16,7 @@ static tcp_recv_callback recv_cb;
 static int sock;//socket handle
 static tcp_status stat = tcp_disconn;//socket状态
 
-static char magic_head[] = {(char)36, (char)50};
+static char magic_head[] = {(char)0x36, (char)0x50};
 
 static char* hartbeat = "keep";//心跳数据，主要为了位置tcp连接持久
 static TaskHandle_t socket_recv_thread_handle;//心跳定时器handler
