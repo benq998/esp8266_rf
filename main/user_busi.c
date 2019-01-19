@@ -2,15 +2,16 @@
 #include "user_busi.h"
 #include "user_tcp.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "driver/uart.h"
 #include "esp_log.h"
+#include "user_main.h"
 
-#define UART_BUF_SIZE (1024)		//读缓冲区长度
 static uint8_t *data_buffer_ptr;	//读缓冲区
 
 //连接状态变化会带哦
 void conn_status_changed(tcp_status st){
-
+	ESP_LOGI(TAG, "conn_status_changed:%d", st);
 }
 
 //收到的网络消息处理
@@ -22,7 +23,11 @@ void process_message(char *buf, int length){
 	int type = buf[0];
 	if(type == 1){
 		//射频控制数据
-		uart_write_bytes(UART_NUM_0,buf + 1,length - 1);
+		ESP_LOGI(TAG,"dataLen:%d", length);
+		for(int i=1;i<length;i++){
+			ESP_LOGI(TAG,"=>%02X", buf[i]);
+		}
+		uart_write_bytes(UART_NUM_0, buf + 1, length - 1);
 	}else{
 		//还不支持的数据
 	}
@@ -30,35 +35,26 @@ void process_message(char *buf, int length){
 
 void loop_read_uart_forever(){
 	for(;;){
+		ESP_LOGI(TAG, "loop_read_uart_forever");
 		int len = uart_read_bytes(UART_NUM_0, data_buffer_ptr, UART_BUF_SIZE, portMAX_DELAY);
-		// Write data back to the UART
-		for(int i = 0; i< len; i++){
-			send_data(data_buffer_ptr, len);
+		if(len > 0){
+			// Write data back to tcp
+			ESP_LOGI(TAG, "send uart data to tcp %d bytes.", len);
+			send_data((char*)data_buffer_ptr, len);
+		}else{
+			vTaskDelay(50 / portTICK_RATE_MS);
 		}
 	}
 }
 
-void init_uart(){
-	//初始化串口
-	uart_config_t uart_config = {
-		.baud_rate = 74880,
-		.data_bits = UART_DATA_8_BITS,
-		.parity    = UART_PARITY_DISABLE,
-		.stop_bits = UART_STOP_BITS_1,
-		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE
-	};
-	uart_param_config(UART_NUM_0, &uart_config);
-	uart_driver_install(UART_NUM_0, UART_BUF_SIZE * 2, 0, 0, NULL);
-
-	// Configure a temporary buffer for the incoming data
-	data_buffer_ptr = (uint8_t *) malloc(UART_BUF_SIZE);
-}
 
 void start_busi(){
+	data_buffer_ptr = (uint8_t *) malloc(UART_BUF_SIZE);
+
 	register_callback(conn_status_changed, process_message);
+
 	init_tcp_conn();
 
-	init_uart();
 	loop_read_uart_forever();//这个方法不返回
 }
 

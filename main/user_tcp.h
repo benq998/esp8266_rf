@@ -15,6 +15,6 @@ void register_callback(tcp_status_callback, tcp_recv_callback);
 
 void init_tcp_conn();
 
-int send_data(void* data, int length);
+int send_data(char* data, int length);
 
 #endif

@@ -9,8 +9,10 @@
 #define EXAMPLE_ESP_WIFI_PASS      "20160906"
 #define EXAMPLE_MAX_STA_CONN       4
 
-#define server_ip		"139.199.104.88"
+#define server_ip		"140.143.161.37"
 #define server_port		7890
+
+#define UART_BUF_SIZE (1024)		//读缓冲区长度
 
 //wifi回调状态定义
 typedef enum {
@@ -21,6 +23,6 @@ typedef enum {
 //wifi回调方法定义
 typedef void (*wifi_status_callback)(wifi_status status);
 
-int64_t currentTimeMillis();
+int currentTimeSeconds();
 
 #endif

@@ -11,7 +11,6 @@
 #include "rom/ets_sys.h"
 #include "nvs_flash.h"
 #include "esp_system.h"
-
 #include "user_main.h"
 #include "user_wifi.h"
 #include "user_busi.h"
@@ -19,6 +18,8 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "lwip/apps/sntp.h"
+#include "driver/uart.h"
+#include "esp_log.h"
 
 static EventGroupHandle_t main_event_group;
 static const int MAIN_CONNECTED_BIT = BIT0;
@@ -35,7 +36,7 @@ void wifi_status_callback_impl(wifi_status status){
 		xEventGroupClearBits(main_event_group, MAIN_CONNECTED_BIT);
 	}else{
 		//其他不支持的状态
-		printf("其他未知的状态回调:%d", status);
+		ESP_LOGI(TAG, "其他未知的状态回调:%d", status);
 	}
 }
 
@@ -44,7 +45,11 @@ void init_sntp(){
 	int sntp_retry_cnt = 0;
 	int sntp_retry_time = 500;
 	sntp_setoperatingmode(SNTP_OPMODE_POLL);
-	sntp_setservername(0, "cn.ntp.org.cn");
+	int i = 0;
+//	sntp_setservername(i++, "cn.ntp.org.cn");
+//	sntp_setservername(i++,"0.cn.pool.ntp.org");
+	sntp_setservername(i++,"1.cn.pool.ntp.org");
+	sntp_setservername(i++,"2.cn.pool.ntp.org");
 	sntp_init();
 	while (1) {
 		for (int32_t i = 0; (i < (SNTP_RECV_TIMEOUT / 100)) && now.tv_sec < 1546272000; i++) {
@@ -60,33 +65,48 @@ void init_sntp(){
 				sntp_retry_cnt ++;
 			}
 
-			printf("SNTP get time failed, retry after %d ms\n", sntp_retry_time);
+			ESP_LOGI(TAG, "SNTP get time failed, retry after %d ms", sntp_retry_time);
 			vTaskDelay(sntp_retry_time / portTICK_RATE_MS);
 		} else {
-			printf("SNTP get time success\n");
+			ESP_LOGI(TAG, "SNTP get time success");
 			break;
 		}
 	}
+	ESP_LOGI(TAG, "currentTimeSeconds:%d", currentTimeSeconds());
 	sntp_stop();
 }
 
-int64_t currentTimeMillis(){
+int currentTimeSeconds(){
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	int64_t val = (int64_t)now.tv_sec * 1000 + now.tv_usec/1000;
-	return val;
+	return (int)now.tv_sec;
 }
 
 void main_task(void *pv){
+	ESP_LOGI(TAG, "main_task start!!!");
 	//等待wifi连接完成
 	xEventGroupWaitBits(main_event_group, MAIN_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 	init_sntp();
 	start_busi();
 }
 
+void init_uart(){
+	//初始化串口
+	uart_config_t uart_config = {
+		.baud_rate = 115200,
+		.data_bits = UART_DATA_8_BITS,
+		.parity    = UART_PARITY_DISABLE,
+		.stop_bits = UART_STOP_BITS_1,
+		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE
+	};
+	uart_param_config(UART_NUM_0, &uart_config);
+	uart_driver_install(UART_NUM_0, UART_BUF_SIZE * 2, 0, 0, NULL);
+}
+
 void app_main(void)
 {
-    printf("SDK version:%s\n", esp_get_idf_version());
+	init_uart();
+	ESP_LOGI(TAG, "SDK version:%s", esp_get_idf_version());
     //Initialize NVS
 	esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES) {
@@ -95,7 +115,9 @@ void app_main(void)
 	}
 	ESP_ERROR_CHECK(ret);
 
+	main_event_group = xEventGroupCreate();
+
 	register_wifi_callback(wifi_status_callback_impl);
 	call_wifi_init();
-	xTaskCreate(main_task, "main_task", 256, NULL, 10, NULL);
+	xTaskCreate(main_task, "main_task", 4096, NULL, 10, NULL);
 }
