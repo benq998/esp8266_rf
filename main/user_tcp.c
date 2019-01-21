@@ -37,9 +37,9 @@ void register_callback(tcp_status_callback scb, tcp_recv_callback rcb){
 }
 
 static void send_hart_beat(void *timer_arg){
-//	ESP_LOGI(TAG, "send hart beat msg.");
+//	//ESP_LOGI(TAG, "send hart beat msg.");
 	if(stat != tcp_connected){
-//		ESP_LOGI(TAG, "发送心跳消息,因为没有连接，忽略此次.");
+//		//ESP_LOGI(TAG, "发送心跳消息,因为没有连接，忽略此次.");
 		return;
 	}
 	//发送心跳数据
@@ -50,10 +50,10 @@ static void send_hart_beat(void *timer_arg){
 		memcpy(hbmsg+1, hartbeat, msgLen);
 		if(send_data(hbmsg, msgLen + 1) < 0){
 			//fail
-//			ESP_LOGI(TAG, "heart beat send fail.");
+//			//ESP_LOGI(TAG, "heart beat send fail.");
 		}else{
 			//succ
-//			ESP_LOGI(TAG, "heart beat send succ.");
+//			//ESP_LOGI(TAG, "heart beat send succ.");
 		}
 	}
 }
@@ -70,7 +70,7 @@ static void send_hart_beat_task(void *timer_arg){
 static void connect_later_task(void *pv);
 
 static void reconnect_later(){
-	ESP_LOGI(TAG,"reconnect_later");
+	//ESP_LOGI(TAG,"reconnect_later");
 	stat = tcp_disconn;
 	//稍后发起重连
 	os_timer_setfn(&reconn_later_timer, connect_later_task, NULL);
@@ -78,7 +78,7 @@ static void reconnect_later(){
 }
 
 static void reconnect(){
-	ESP_LOGI(TAG,"reconnect");
+	//ESP_LOGI(TAG,"reconnect");
 	buffer_data_length = 0;
 	stat = tcp_disconn;
 	if(sock != -1){
@@ -93,7 +93,7 @@ static void connect_later_task(void *pv){
 }
 
 static void process_heart_beat(){
-	ESP_LOGI(TAG, "receive heart beat replay.");
+	//ESP_LOGI(TAG, "receive heart beat replay.");
 	last_hart_beat_time = currentTimeSeconds();
 }
 
@@ -147,7 +147,7 @@ static void recv_data(char* buf, int len){
 }
 
 static void socket_recv_thread(void *pvParameters){
-	ESP_LOGI(TAG,"socket_recv_thread start");
+	//ESP_LOGI(TAG,"socket_recv_thread start");
 	const int buf_len = 128;
 	char buf[buf_len];
 	while(1){
@@ -158,7 +158,7 @@ static void socket_recv_thread(void *pvParameters){
 			continue;
 		}
 		int n = read(sock, buf, buf_len);
-		ESP_LOGI(TAG,"receive %d bytes", n);
+		//ESP_LOGI(TAG,"receive %d bytes", n);
 		if(n > 0){
 			recv_data(buf, n);
 		}else{
@@ -177,16 +177,16 @@ void init_tcp_conn(){
 	inet_pton(AF_INET, server_ip, &sockaddr.sin_addr);
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if(sock < 0) {
-		ESP_LOGI(TAG, "... Failed to allocate socket.");
+		//ESP_LOGI(TAG, "... Failed to allocate socket.");
 		reconnect_later();
 		return;
 	}
 	if(connect(sock, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) != 0) {
-		ESP_LOGI(TAG, "... socket connect failed errno=%d", errno);
+		//ESP_LOGI(TAG, "... socket connect failed errno=%d", errno);
 		reconnect_later();
 		return;
 	}
-	ESP_LOGI(TAG,"socket connect succ. socketfd:%d", sock);
+	//ESP_LOGI(TAG,"socket connect succ. socketfd:%d", sock);
 	stat = tcp_connected;
 	status_cb(tcp_connected);
 
@@ -208,9 +208,9 @@ static char send_buffer[send_data_buffer_max];
 //发送数据
 int send_data(char* data, int length){
 	if(stat == tcp_connected){
-//		ESP_LOGI(TAG,"send_data...len:%d", length);
+//		//ESP_LOGI(TAG,"send_data...len:%d", length);
 		if(length + 3 > send_data_buffer_max){
-//			ESP_LOGI(TAG,"send data too long ....");
+//			//ESP_LOGI(TAG,"send data too long ....");
 			//判断数据手否过长
 			return -1;
 		}
@@ -218,9 +218,9 @@ int send_data(char* data, int length){
 		send_buffer[1] = magic_head[1];//add magic header
 		send_buffer[2] = length;//add length field
 		memcpy(send_buffer + 3, data, length);//add data
-//		ESP_LOGI(TAG,"socket sending %d bytes.",(length + 3));
+//		//ESP_LOGI(TAG,"socket sending %d bytes.",(length + 3));
 		int written = write(sock, send_buffer, (length + 3));
-//		ESP_LOGI(TAG,"socket sent %d bytes", written);
+//		//ESP_LOGI(TAG,"socket sent %d bytes", written);
 		if(written > 0){
 			return written;
 		}else{
@@ -228,7 +228,7 @@ int send_data(char* data, int length){
 
 		}
 	}else{
-//		ESP_LOGI(TAG,"send_data, buy not have connection.");
+//		//ESP_LOGI(TAG,"send_data, buy not have connection.");
 	}
 	return -1;
 }

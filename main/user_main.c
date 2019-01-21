@@ -36,7 +36,7 @@ void wifi_status_callback_impl(wifi_status status){
 		xEventGroupClearBits(main_event_group, MAIN_CONNECTED_BIT);
 	}else{
 		//其他不支持的状态
-		ESP_LOGI(TAG, "其他未知的状态回调:%d", status);
+		//ESP_LOGI(TAG, "其他未知的状态回调:%d", status);
 	}
 }
 
@@ -48,7 +48,7 @@ void init_sntp(){
 	int i = 0;
 //	sntp_setservername(i++, "cn.ntp.org.cn");
 //	sntp_setservername(i++,"0.cn.pool.ntp.org");
-	sntp_setservername(i++,"1.cn.pool.ntp.org");
+//	sntp_setservername(i++,"1.cn.pool.ntp.org");
 	sntp_setservername(i++,"2.cn.pool.ntp.org");
 	sntp_init();
 	while (1) {
@@ -65,14 +65,14 @@ void init_sntp(){
 				sntp_retry_cnt ++;
 			}
 
-			ESP_LOGI(TAG, "SNTP get time failed, retry after %d ms", sntp_retry_time);
+			//ESP_LOGI(TAG, "SNTP get time failed, retry after %d ms", sntp_retry_time);
 			vTaskDelay(sntp_retry_time / portTICK_RATE_MS);
 		} else {
 			ESP_LOGI(TAG, "SNTP get time success");
 			break;
 		}
 	}
-	ESP_LOGI(TAG, "currentTimeSeconds:%d", currentTimeSeconds());
+	//ESP_LOGI(TAG, "currentTimeSeconds:%d", currentTimeSeconds());
 	sntp_stop();
 }
 
@@ -83,17 +83,20 @@ int currentTimeSeconds(){
 }
 
 void main_task(void *pv){
-	ESP_LOGI(TAG, "main_task start!!!");
+	//ESP_LOGI(TAG, "main_task start!!!");
 	//等待wifi连接完成
 	xEventGroupWaitBits(main_event_group, MAIN_CONNECTED_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
 	init_sntp();
 	start_busi();
+	//ESP_LOGI(TAG, "main_task end!!");
+	vTaskDelete(NULL);
 }
 
 void init_uart(){
 	//初始化串口
 	uart_config_t uart_config = {
-		.baud_rate = 115200,
+//		.baud_rate = 115200,
+		.baud_rate = 9600,
 		.data_bits = UART_DATA_8_BITS,
 		.parity    = UART_PARITY_DISABLE,
 		.stop_bits = UART_STOP_BITS_1,
@@ -106,7 +109,7 @@ void init_uart(){
 void app_main(void)
 {
 	init_uart();
-	ESP_LOGI(TAG, "SDK version:%s", esp_get_idf_version());
+	//ESP_LOGI(TAG, "SDK version:%s", esp_get_idf_version());
     //Initialize NVS
 	esp_err_t ret = nvs_flash_init();
 	if (ret == ESP_ERR_NVS_NO_FREE_PAGES) {
